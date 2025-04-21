@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎮 WordMaster - Multiplayer Hangman</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Roboto&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(to right, #fbc2eb, #a6c1ee);
+      font-family: 'Roboto', sans-serif;
+      color: #333;
+    }
+    header {
+      background: linear-gradient(to right, #ff9a9e, #fad0c4);
+      color: #fff;
+      text-align: center;
+      padding: 1.5em;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    header h1 { font-family: 'Fredoka One', cursive; font-size: 2.5em; margin: 0; }
+    nav a { color: #fff; text-decoration: none; margin: 0 15px; font-weight: 600; font-size: 1.1em; transition: all 0.3s; }
+    nav a:hover { color: #ffd700; transform: scale(1.1); }
+    main { display: flex; flex-direction: column; align-items: center; padding: 30px 10px; }
+    section { display: none; background: #ffffffd9; backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 800px; animation: fadeIn 0.5s ease; margin-bottom: 50px; }
+    section.active { display: block; }
+    @keyframes fadeIn { 0% { opacity: 0; transform: translateY(30px); } 100% { opacity: 1; transform: translateY(0); } }
+    h2 { font-family: 'Fredoka One', cursive; font-size: 2em; color: #ff6f61; text-align: center; margin-bottom: 20px; }
+    button { padding: 14px 28px; font-size: 16px; background: #ff6f61; color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 12px rgba(0,0,0,0.2); transition: all 0.3s; }
+    button:hover { background: #ff9e80; transform: scale(1.05); }
+    input[type="text"], input[type="email"], input[type="password"] { width: 100%; padding: 14px; font-size: 16px; border: 2px solid #ff9e80; border-radius: 12px; margin-bottom: 15px; }
+    input:focus { border-color: #ff6f61; outline: none; }
+    .word-display { font-size: 36px; text-align: center; letter-spacing: 12px; margin: 20px 0; background: #ffe0e0; padding: 20px; border-radius: 12px; color: #333; }
+    .timer-display { font-size: 24px; text-align: center; font-weight: bold; color: #ff1744; margin-bottom: 15px; }
+    .timer-warning { color: #b71c1c !important; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { padding: 12px; border: 1px solid #ccc; text-align: center; font-size: 16px; }
+    th { background: #ffcc80; color: #333; }
+    .guess-history span { background: #ff6f61; color: white; padding: 8px 12px; margin: 5px; border-radius: 30px; display: inline-block; font-size: 14px; }
+    footer { text-align: center; color: #555; padding: 20px; font-size: 14px; }
+    #resultMessage { text-align: center; font-size: 1.2em; color: #388e3c; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><i class="fas fa-gamepad"></i> WordMaster</h1>
+  <nav>
+    <a onclick="showPage('home')"><i class="fas fa-home icon"></i>Home</a>
+    <a onclick="showPage('leaderboard')"><i class="fas fa-trophy icon"></i>Leaderboard</a>
+    <a onclick="showPage('login')"><i class="fas fa-sign-in-alt icon"></i>Login</a>
+    <a onclick="showPage('profile')"><i class="fas fa-user icon"></i>Profile</a>
+    <a onclick="showPage('dashboard')"><i class="fas fa-play icon"></i>Play</a>
+  </nav>
+</header>
+
+<main>
+  <section id="home" class="active">
+    <h2>Welcome to WordMaster! 🎉</h2>
+    <p>Guess the word, beat the timer, and climb the leaderboard!</p>
+    <button onclick="showPage('dashboard')"><i class="fas fa-play-circle icon"></i>Start Playing!</button>
+  </section>
+
+  <section id="leaderboard">
+    <h2>🏆 Leaderboard</h2>
+    <table>
+      <thead><tr><th>Rank</th><th>Player</th><th>Points</th></tr></thead>
+      <tbody id="leaderboard-body"></tbody>
+    </table>
+  </section>
+
+  <section id="login">
+    <h2><i class="fas fa-user-lock icon"></i>Login</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login <i class="fas fa-arrow-right icon"></i></button>
+  </section>
+
+  <section id="profile">
+    <h2><i class="fas fa-user-circle icon"></i>Profile</h2>
+    <p><i class="fas fa-envelope icon"></i>Username: <input type="text" id="username" disabled></p>
+    <div class="profile-stats">
+      <p><i class="fas fa-chart-line icon"></i>Total Games Played: <span id="gamesPlayed">0</span></p>
+      <p><i class="fas fa-star icon"></i>Total Points: <span id="totalPoints">0</span></p>
+      <p><i class="fas fa-percentage icon"></i>Average Score: <span id="averageScore">0%</span></p>
+    </div>
+    <div class="profile-history">
+      <h3>🕹️ Game History</h3>
+      <table>
+        <thead><tr><th>#</th><th>Word</th><th>Result</th><th>Points</th></tr></thead>
+        <tbody id="gameHistory"></tbody>
+      </table>
+    </div>
+    <button onclick="logout()"><i class="fas fa-sign-out-alt icon"></i>Logout</button>
+  </section>
+
+  <section id="dashboard">
+    <h2><i class="fas fa-keyboard icon"></i>Hangman Game</h2>
+    <div class="timer-display" id="timerDisplay">Time Left: 30s</div>
+    <div class="word-display" id="wordDisplay">_ _ _ _ _</div>
+    <input type="text" id="guessInput" maxlength="1" placeholder="Guess a letter">
+    <button onclick="makeGuess()"><i class="fas fa-check-circle icon"></i>Guess</button>
+    <div class="guess-history">
+      <h4>Guessed Letters</h4>
+      <div id="guessedLetters">None</div>
+    </div>
+    <div id="resultMessage"></div>
+  </section>
+</main>
+
+<footer>
+  <p>&copy; 2025 WordMaster. All rights reserved.</p>
+</footer>
+
+<script>
+  // Genel login kontrolü
+  let userHistory = [];
+
+  function showPage(pageId) {
+    document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+    
+    if (pageId === 'profile') {
+      const isLoggedIn = localStorage.getItem('isLoggedIn');
+      if (!isLoggedIn || isLoggedIn !== 'true') {
+        alert('Login required to view profile.');
+        showPage('login');
+        return;
+      }
+      loadUserProfile();
+    }
+
+    if (pageId === 'dashboard') startGame();
+    else stopGameTimer();
+
+    if (pageId === 'leaderboard') startLeaderboardUpdates();
+    else stopLeaderboardUpdates();
+
+    document.getElementById(pageId).classList.add('active');
+  }
+
+  function login() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if (!email || !password) {
+      alert("Please fill both email and password.");
+      return;
+    }
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userEmail', email);
+    alert('Login successful!');
+    showPage('profile');
+  }
+
+  function logout() {
+    localStorage.clear();
+    alert('Logged out!');
+    showPage('home');
+  }
+
+  function loadUserProfile() {
+    const email = localStorage.getItem('userEmail') || "Player";
+    document.getElementById('username').value = email;
+    document.getElementById('gamesPlayed').textContent = userHistory.length;
+    document.getElementById('totalPoints').textContent = userHistory.reduce((sum, game) => sum + game.points, 0);
+    document.getElementById('averageScore').textContent = userHistory.length ? `${Math.round(userHistory.reduce((sum, game) => sum + game.points, 0) / userHistory.length)}%` : "0%";
+
+    const historyTable = document.getElementById('gameHistory');
+    historyTable.innerHTML = '';
+    userHistory.forEach((game, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${index + 1}</td><td>${game.word}</td><td>${game.result}</td><td>${game.points}</td>`;
+      historyTable.appendChild(row);
+    });
+  }
+
+  let leaderboardInterval;
+  function startLeaderboardUpdates() {
+    renderLeaderboard(generateFakeLeaderboard());
+    leaderboardInterval = setInterval(() => {
+      renderLeaderboard(generateFakeLeaderboard());
+    }, 3000);
+  }
+
+  function stopLeaderboardUpdates() {
+    clearInterval(leaderboardInterval);
+  }
+
+  function generateFakeLeaderboard() {
+    const names = ["Zara", "Leo", "Milo", "Nova", "Kai", "Raya", "Juno", "Niko", "Maya", "Aria", "Ezra", "Theo", "Luna", "Aiden", "Sage", "Skye", "Axel", "Nyx", "Orion", "Blaze"];
+    return names.sort(() => 0.5 - Math.random()).slice(0, 5).map((player, idx) => ({
+      player,
+      points: Math.floor(Math.random() * 1000)
+    })).sort((a, b) => b.points - a.points);
+  }
+
+  function renderLeaderboard(data) {
+    const tbody = document.getElementById('leaderboard-body');
+    tbody.innerHTML = '';
+    data.forEach((entry, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${index + 1}</td><td>${entry.player}</td><td>${entry.points}</td>`;
+      tbody.appendChild(row);
+    });
+  }
+
+  let wordList = ["APPLE", "HOUSE", "TRAIN", "PLANE", "CHAIR"];
+  let previousWord = "";
+  let secretWord = "";
+  let displayWord = [];
+  let guessedLetters = [];
+  let timeLeft = 30;
+  let gameTimer;
+
+  function startGame() {
+    stopGameTimer();
+    pickNewWord();
+    timeLeft = 30;
+    updateTimerDisplay();
+    gameTimer = setInterval(() => {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearInterval(gameTimer);
+        gameOver(false);
+        setTimeout(startGame, 3000);
+      }
+    }, 1000);
+  }
+
+  function stopGameTimer() {
+    clearInterval(gameTimer);
+  }
+
+  function pickNewWord() {
+    let newWord;
+    do {
+      newWord = wordList[Math.floor(Math.random() * wordList.length)];
+    } while (newWord === previousWord);
+    previousWord = newWord;
+
+    secretWord = newWord;
+    displayWord = Array(secretWord.length).fill("_");
+    guessedLetters = [];
+
+    const revealCount = secretWord.length > 6 ? 3 : 2;
+    let revealed = [];
+
+    while (revealed.length < revealCount) {
+      let idx = Math.floor(Math.random() * secretWord.length);
+      if (!revealed.includes(idx)) {
+        revealed.push(idx);
+        displayWord[idx] = secretWord[idx];
+        guessedLetters.push(secretWord[idx]);
+      }
+    }
+
+    updateDisplay();
+    document.getElementById('resultMessage').textContent = "";
+  }
+
+  function makeGuess() {
+    if (timeLeft <= 0) {
+      alert("Time's up! Wait for next round.");
+      return;
+    }
+
+    const guessInput = document.getElementById('guessInput');
+    const letter = guessInput.value.toUpperCase();
+
+    if (!letter || letter.length !== 1 || !/[A-Z]/.test(letter)) {
+      alert("Enter a valid letter.");
+      return;
+    }
+
+    if (guessedLetters.includes(letter)) {
+      alert("Already guessed!");
+      guessInput.value = '';
+      return;
+    }
+
+    guessedLetters.push(letter);
+
+    if (secretWord.includes(letter)) {
+      for (let i = 0; i < secretWord.length; i++) {
+        if (secretWord[i] === letter) displayWord[i] = letter;
+      }
+    }
+
+    updateDisplay();
+    guessInput.value = '';
+
+    if (!displayWord.includes("_")) {
+      clearInterval(gameTimer);
+      gameOver(true);
+      setTimeout(startGame, 3000);
+    }
+  }
+
+  function gameOver(win) {
+    const points = win ? 100 : 0;
+    userHistory.push({ word: secretWord, result: win ? 'Win' : 'Lose', points });
+    document.getElementById('resultMessage').textContent = win ? "🎉 You guessed the word!" : `❌ Time's up! The word was: ${secretWord}`;
+  }
+
+  function updateDisplay() {
+    document.getElementById('wordDisplay').textContent = displayWord.join(" ");
+    const guessed = guessedLetters.map(l => `<span>${l}</span>`).join("");
+    document.getElementById('guessedLetters').innerHTML = guessed || "None";
+  }
+
+  function updateTimerDisplay() {
+    const timer = document.getElementById('timerDisplay');
+    timer.textContent = `Time Left: ${timeLeft}s`;
+    timer.classList.toggle("timer-warning", timeLeft <= 10);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    showPage('home');
+  });
+</script>
+
+</body>
+</html>
